@@ -14,6 +14,7 @@ class SessionManager:
         user_id: None | int = None,
         valid: None | bool = None,
         api: Type[APIData] = API.TelegramDesktop,
+        client=None,
     ):
         """
         Initializes a SessionManager instance with the specified parameters.
@@ -25,20 +26,25 @@ class SessionManager:
             valid (None|bool, optional): Validation status, default is None.
             api (Type[APIData], optional): API type, default is API.TelegramDesktop.
         """
-
+        self.autoDelClient=True
         self.dc_id = dc_id
         self.auth_key = auth_key
         self.user_id = user_id
         self.valid = valid
         self.api = api.copy()
         self.user = None
-        self.client = None
+        self.client = client
+        if client:
+            self.autoDelClient=False
+
 
     async def __aenter__(self):
         """
         Asynchronous context manager entry method.
         Establishes a connection to the Telethon client.
         """
+        if self.client:
+            return self.client
         self.client = self.telethon_client()
         await self.client.connect()
         return self.client
@@ -48,8 +54,9 @@ class SessionManager:
         Asynchronous context manager exit method.
         Disconnects the Telethon client.
         """
-        await self.client.disconnect()
-        self.client = None
+        if self.autoDelClient:
+            await self.client.disconnect()
+            self.client = None
 
     @property
     def auth_key_hex(self) -> str:
